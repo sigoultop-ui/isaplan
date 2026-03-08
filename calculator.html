@@ -543,9 +543,71 @@
       .card { padding: 16px; }
       .btn-save-nav span { display: none; }
     }
+    /* ── 사이트 배너 ── */
+    .site-banner {
+      position: fixed; top: 60px; left: 0; right: 0; z-index: 150;
+      padding: 9px 20px; text-align: center; font-size: 0.84rem; font-weight: 500;
+      display: none;
+    }
+    .site-banner.blue   { background: rgba(79,142,247,.18); color: #93c5fd; border-bottom: 1px solid rgba(79,142,247,.3); }
+    .site-banner.green  { background: rgba(52,211,153,.18); color: #6ee7b7; border-bottom: 1px solid rgba(52,211,153,.3); }
+    .site-banner.yellow { background: rgba(245,158,11,.18); color: #fcd34d; border-bottom: 1px solid rgba(245,158,11,.3); }
+    .site-banner.red    { background: rgba(248,113,113,.18); color: #fca5a5; border-bottom: 1px solid rgba(248,113,113,.3); }
+    body.has-banner { padding-top: 116px; }
+
+    /* ── 점검 모드 오버레이 ── */
+    .maint-overlay {
+      position: fixed; inset: 0; z-index: 999; display: none;
+      background: rgba(11,13,20,.96); flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 32px;
+    }
+    .maint-overlay.show { display: flex; }
+    .maint-overlay h2 { font-size: 1.6rem; font-weight: 800; }
+    .maint-overlay p { color: #8892b0; font-size: 0.9rem; line-height: 1.8; max-width: 440px; }
+
+    /* ── 피드백 플로팅 버튼 ── */
+    .fab-feedback {
+      position: fixed; bottom: 24px; right: 24px; z-index: 500;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 50px; padding: 10px 18px; font-size: 0.82rem; font-weight: 600;
+      color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 7px;
+      transition: all .2s; box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    }
+    .fab-feedback:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+    /* ── 피드백 모달 ── */
+    .fb-modal-overlay {
+      position: fixed; inset: 0; z-index: 600;
+      background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .fb-modal-overlay.open { display: flex; }
+    .fb-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 28px; width: 100%; max-width: 440px; }
+    .fb-modal h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 18px; }
+    .fb-field { margin-bottom: 13px; }
+    .fb-field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 5px; }
+    .fb-field select, .fb-field textarea {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); padding: 9px 13px; font-size: 0.86rem; font-family: inherit;
+    }
+    .fb-field select:focus, .fb-field textarea:focus { outline: none; border-color: var(--accent); }
+    .fb-field textarea { resize: vertical; min-height: 90px; }
+    .fb-modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    .btn-fb-cancel { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.84rem; font-family: inherit; }
+    .btn-fb-send { background: var(--accent); color: #fff; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 0.84rem; font-weight: 700; font-family: inherit; }
+    .btn-fb-send:disabled { opacity: .45; cursor: not-allowed; }
   </style>
 </head>
 <body>
+
+<!-- ── 사이트 배너 ── -->
+<div class="site-banner" id="siteBanner"></div>
+
+<!-- ── 점검 모드 오버레이 ── -->
+<div class="maint-overlay" id="maintOverlay">
+  <div style="font-size:3rem;">🔧</div>
+  <h2>서비스 점검 중</h2>
+  <p id="maintMsg">현재 서비스 점검 중입니다. 잠시 후 다시 이용해주세요.</p>
+</div>
 
 <!-- ── NAV ── -->
 <nav>
@@ -559,6 +621,7 @@
       </svg>
       <span>계획 저장/불러오기</span>
     </button>
+    <a href="admin.html" id="adminNavLink" style="display:none;align-items:center;gap:5px;font-size:0.76rem;font-weight:600;color:var(--accent3);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:5px 10px;text-decoration:none;">⚙️ 관리자</a>
     <div id="authArea"><!-- JS 채움 --></div>
   </div>
 </nav>
@@ -687,6 +750,32 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- ── 피드백 플로팅 버튼 ── -->
+<button class="fab-feedback" id="btnFeedback">💬 피드백 보내기</button>
+
+<!-- ── 피드백 모달 ── -->
+<div class="fb-modal-overlay" id="fbModal">
+  <div class="fb-modal">
+    <h3>💬 피드백 보내기</h3>
+    <div class="fb-field">
+      <label>유형</label>
+      <select id="fbCategory">
+        <option value="suggestion">💡 건의사항</option>
+        <option value="bug">🐛 버그 신고</option>
+        <option value="other">📌 기타</option>
+      </select>
+    </div>
+    <div class="fb-field">
+      <label>내용</label>
+      <textarea id="fbMessage" placeholder="의견이나 불편사항을 자유롭게 적어주세요." rows="4"></textarea>
+    </div>
+    <div class="fb-modal-footer">
+      <button class="btn-fb-cancel" id="btnFbCancel">취소</button>
+      <button class="btn-fb-send" id="btnFbSend">전송</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── 계산기 로직 (non-module) ── -->
 <script>
@@ -853,7 +942,7 @@ render();
     signOut,
   } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
   import {
-    collection, addDoc, getDocs, deleteDoc, doc,
+    collection, addDoc, getDocs, deleteDoc, doc, getDoc,
     serverTimestamp, query, orderBy, setDoc,
   } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
 
@@ -905,14 +994,80 @@ render();
 
   // ── 사용자 프로필 Firestore 저장 ─────────────────────────────
   async function upsertUserProfile(user) {
-    const ref = doc(db, 'users', user.uid);
-    await setDoc(ref, {
+    const ref  = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    const data = {
       displayName: user.displayName || '',
       email:       user.email || '',
-      photoURL:    user.photoURL  || '',
+      photoURL:    user.photoURL || '',
       lastLoginAt: serverTimestamp(),
-    }, { merge: true });
+    };
+    if (!snap.exists()) data.createdAt = serverTimestamp(); // 최초 가입 시만
+    await setDoc(ref, data, { merge: true });
   }
+
+  // ── 관리자 링크 노출 ──────────────────────────────────────────
+  const ADMIN_EMAIL = 'sigoultop@gmail.com';
+
+  // ── 배너 / 점검 모드 로드 ─────────────────────────────────────
+  async function loadSiteSettings(user) {
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'global'));
+      if (!snap.exists()) return;
+      const s = snap.data();
+      // 배너
+      if (s.bannerActive && s.bannerText) {
+        const el = document.getElementById('siteBanner');
+        el.textContent = s.bannerText;
+        el.className   = `site-banner ${s.bannerColor || 'blue'}`;
+        el.style.display = 'block';
+        document.body.classList.add('has-banner');
+      }
+      // 점검 모드 (관리자는 제외)
+      if (s.maintenanceMode && user?.email !== ADMIN_EMAIL) {
+        const overlay = document.getElementById('maintOverlay');
+        if (s.maintenanceMsg) document.getElementById('maintMsg').textContent = s.maintenanceMsg;
+        overlay.classList.add('show');
+      }
+    } catch (e) { console.error('settings load error', e); }
+  }
+
+  // ── 피드백 모달 ───────────────────────────────────────────────
+  document.getElementById('btnFeedback').addEventListener('click', () =>
+    document.getElementById('fbModal').classList.add('open')
+  );
+  document.getElementById('btnFbCancel').addEventListener('click', () =>
+    document.getElementById('fbModal').classList.remove('open')
+  );
+  document.getElementById('fbModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('fbModal'))
+      document.getElementById('fbModal').classList.remove('open');
+  });
+
+  document.getElementById('btnFbSend').addEventListener('click', async () => {
+    const msg = document.getElementById('fbMessage').value.trim();
+    if (!msg) { document.getElementById('fbMessage').focus(); return; }
+    const btn = document.getElementById('btnFbSend');
+    btn.disabled = true; btn.textContent = '전송 중…';
+    try {
+      await addDoc(collection(db, 'feedback'), {
+        userId:      currentUser?.uid || null,
+        email:       currentUser?.email || '비로그인',
+        displayName: currentUser?.displayName || '익명',
+        category:    document.getElementById('fbCategory').value,
+        message:     msg,
+        read:        false,
+        createdAt:   serverTimestamp(),
+      });
+      document.getElementById('fbMessage').value = '';
+      document.getElementById('fbModal').classList.remove('open');
+      showToast('피드백이 전송되었습니다. 감사합니다!');
+    } catch (e) {
+      showToast('전송에 실패했습니다.', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = '전송';
+    }
+  });
 
   // ── 모달 ─────────────────────────────────────────────────────
   const modal       = document.getElementById('planModal');
@@ -1058,9 +1213,16 @@ render();
     currentUser = user;
     renderAuthNav(user);
     if (user) upsertUserProfile(user).catch(console.error);
+    // 관리자 링크
+    const adminLink = document.getElementById('adminNavLink');
+    if (adminLink) adminLink.style.display = user?.email === ADMIN_EMAIL ? 'inline-flex' : 'none';
     // 모달이 열려 있으면 갱신
     if (modal.classList.contains('open')) renderModal();
   });
+
+  // 배너/점검 모드는 auth와 무관하게 바로 로드
+  loadSiteSettings(null);
+  onAuthStateChanged(auth, user => loadSiteSettings(user));
 </script>
 
 </body>

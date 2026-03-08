@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISAplan 관리자</title>
+  <style>
+    :root {
+      --bg: #0b0d14;
+      --surface: #12151f;
+      --surface2: #1a1d2e;
+      --border: #252840;
+      --accent: #4f8ef7;
+      --accent2: #34d399;
+      --accent3: #f59e0b;
+      --danger: #f87171;
+      --text: #e2e8f0;
+      --muted: #7986a8;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif; display: flex; min-height: 100vh; font-size: 14px; }
+
+    /* ── 로딩 / 접근 거부 ── */
+    #loadingScreen, #accessDenied {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      background: var(--bg); z-index: 999;
+    }
+    .spinner { width: 38px; height: 38px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px 48px; text-align: center; max-width: 380px; width: 90%; }
+    .login-box h2 { font-size: 1.4rem; margin-bottom: 8px; }
+    .login-box p { color: var(--muted); font-size: 0.86rem; margin-bottom: 28px; line-height: 1.6; }
+    .btn-google-login { display: inline-flex; align-items: center; gap: 10px; background: #fff; color: #1f2937; font-size: 0.88rem; font-weight: 600; padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; transition: opacity .2s; width: 100%; justify-content: center; }
+    .btn-google-login:hover { opacity: .88; }
+
+    /* ── 사이드바 ── */
+    .sidebar {
+      width: 220px; flex-shrink: 0; background: var(--surface);
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+    }
+    .sidebar-logo { padding: 22px 18px 18px; font-size: 1.05rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .sidebar-logo span { display: block; font-size: 0.62rem; font-weight: 500; color: var(--muted); -webkit-text-fill-color: var(--muted); margin-top: 2px; letter-spacing: .03em; }
+    .sidebar-nav { flex: 1; padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+    .nav-btn { width: 100%; padding: 9px 11px; border: none; background: none; color: var(--muted); cursor: pointer; border-radius: 8px; text-align: left; font-size: 0.85rem; font-family: inherit; display: flex; align-items: center; gap: 9px; transition: all .15s; }
+    .nav-btn:hover { background: var(--surface2); color: var(--text); }
+    .nav-btn.active { background: rgba(79,142,247,.14); color: var(--accent); font-weight: 600; }
+    .nav-btn .icon { width: 18px; text-align: center; font-size: 0.95rem; }
+    .nav-badge { margin-left: auto; background: var(--danger); color: #fff; border-radius: 20px; padding: 1px 7px; font-size: 0.68rem; font-weight: 700; }
+    .sidebar-footer { padding: 14px; border-top: 1px solid var(--border); }
+    .admin-chip { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+    .admin-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+    .admin-name { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .admin-badge { font-size: 0.65rem; color: var(--accent3); font-weight: 600; }
+    .btn-logout { width: 100%; padding: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; font-size: 0.8rem; font-family: inherit; transition: all .15s; }
+    .btn-logout:hover { color: var(--danger); border-color: var(--danger); }
+
+    /* ── 메인 ── */
+    .main { margin-left: 220px; flex: 1; padding: 30px 32px; min-height: 100vh; }
+    .page-title { font-size: 1.35rem; font-weight: 800; margin-bottom: 3px; }
+    .page-sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 26px; }
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
+
+    /* ── 통계 카드 ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 18px 20px; }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+    .stat-value { font-size: 1.9rem; font-weight: 800; }
+    .stat-sub { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    .stat-card.blue .stat-value { color: var(--accent); }
+    .stat-card.green .stat-value { color: var(--accent2); }
+    .stat-card.yellow .stat-value { color: var(--accent3); }
+    .stat-card.red .stat-value { color: var(--danger); }
+
+    /* ── 카드 ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 22px; margin-bottom: 18px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 0.92rem; font-weight: 700; }
+
+    /* ── 테이블 ── */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 9px 11px; color: var(--muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 11px 11px; border-bottom: 1px solid rgba(37,40,64,.6); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--surface2); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+    .badge.normal { background: rgba(52,211,153,.12); color: var(--accent2); }
+    .badge.banned { background: rgba(248,113,113,.12); color: var(--danger); }
+    .badge.unread { background: rgba(245,158,11,.12); color: var(--accent3); }
+    .badge.read-badge { background: rgba(121,134,168,.1); color: var(--muted); }
+
+    /* ── 버튼 ── */
+    .btn { padding: 6px 13px; border-radius: 7px; border: none; cursor: pointer; font-size: 0.78rem; font-family: inherit; font-weight: 600; transition: all .15s; white-space: nowrap; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-danger { background: rgba(248,113,113,.12); color: var(--danger); border: 1px solid rgba(248,113,113,.4); }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-warn { background: rgba(245,158,11,.12); color: var(--accent3); border: 1px solid rgba(245,158,11,.4); }
+    .btn-warn:hover { background: var(--accent3); color: #000; }
+    .btn-sm { padding: 4px 10px; font-size: 0.74rem; }
+    .btn-xs { padding: 3px 8px; font-size: 0.7rem; }
+
+    /* ── 검색 ── */
+    .search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+    .search-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 9px 14px; font-size: 0.86rem; font-family: inherit; }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+
+    /* ── 토글 ── */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-of-type { border-bottom: none; }
+    .toggle-info h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 3px; }
+    .toggle-info p { font-size: 0.78rem; color: var(--muted); }
+    .toggle { position: relative; width: 42px; height: 22px; flex-shrink: 0; }
+    .toggle input { display: none; }
+    .toggle-slider { position: absolute; inset: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 22px; cursor: pointer; transition: all .2s; }
+    .toggle-slider::after { content: ''; position: absolute; left: 3px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: all .2s; }
+    input:checked + .toggle-slider { background: rgba(79,142,247,.25); border-color: var(--accent); }
+    input:checked + .toggle-slider::after { left: calc(100% - 17px); background: var(--accent); }
+
+    /* ── 필드 ── */
+    .field { margin-bottom: 13px; }
+    .field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 5px; }
+    .field input, .field textarea, .field select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 9px 13px; font-size: 0.86rem; font-family: inherit; }
+    .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 78px; }
+    .field select option { background: var(--surface2); }
+
+    /* ── 유저 계획 확장 행 ── */
+    .plans-expand-row { display: none; }
+    .plans-expand-row.open { display: table-row; }
+    .plans-expand-row td { padding: 0; }
+    .plans-expand-inner { background: var(--surface2); padding: 10px 16px; }
+    .plan-line { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; gap: 10px; }
+    .plan-line:last-child { border-bottom: none; }
+
+    /* ── 피드백 ── */
+    .feedback-item { padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 9px; cursor: pointer; transition: border-color .15s; }
+    .feedback-item:hover { border-color: rgba(79,142,247,.4); }
+    .feedback-item.unread-item { border-left: 3px solid var(--accent3); }
+    .fb-header { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; flex-wrap: wrap; }
+    .fb-from { font-size: 0.84rem; font-weight: 600; }
+    .fb-cat { font-size: 0.7rem; color: var(--muted); background: var(--surface2); padding: 2px 8px; border-radius: 20px; }
+    .fb-date { font-size: 0.73rem; color: var(--muted); margin-left: auto; }
+    .fb-preview { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+    .fb-full { font-size: 0.84rem; line-height: 1.7; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: none; white-space: pre-wrap; }
+    .feedback-item.expanded .fb-full { display: block; }
+    .fb-actions { display: none; gap: 7px; margin-top: 10px; }
+    .feedback-item.expanded .fb-actions { display: flex; }
+
+    /* ── 필터 탭 ── */
+    .filter-tabs { display: flex; gap: 7px; margin-bottom: 14px; flex-wrap: wrap; }
+    .filter-tab { padding: 5px 13px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; font-family: inherit; transition: all .15s; }
+    .filter-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+    /* ── 빈 상태 ── */
+    .empty-state { text-align: center; padding: 44px; color: var(--muted); }
+    .empty-state .emoji { font-size: 2.2rem; margin-bottom: 10px; }
+    .empty-state p { font-size: 0.86rem; }
+
+    /* ── 배너 미리보기 ── */
+    .banner-preview { border-radius: 8px; padding: 10px 16px; font-size: 0.84rem; font-weight: 500; margin-top: 12px; margin-bottom: 16px; text-align: center; }
+    .banner-preview.blue { background: rgba(79,142,247,.15); color: var(--accent); border: 1px solid rgba(79,142,247,.3); }
+    .banner-preview.green { background: rgba(52,211,153,.15); color: var(--accent2); border: 1px solid rgba(52,211,153,.3); }
+    .banner-preview.yellow { background: rgba(245,158,11,.15); color: var(--accent3); border: 1px solid rgba(245,158,11,.3); }
+    .banner-preview.red { background: rgba(248,113,113,.15); color: var(--danger); border: 1px solid rgba(248,113,113,.3); }
+
+    /* ── 토스트 ── */
+    .toast { position: fixed; bottom: 26px; right: 26px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 18px; font-size: 0.84rem; z-index: 9999; transform: translateY(70px); opacity: 0; transition: all .28s; pointer-events: none; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { border-color: var(--danger); color: var(--danger); }
+    .toast.success { border-color: var(--accent2); color: var(--accent2); }
+
+    @media (max-width: 1000px) { .stat-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 700px) { .sidebar { display: none; } .main { margin-left: 0; padding: 20px 16px; } }
+  </style>
+</head>
+<body>
+
+<!-- ── 로딩 ── -->
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <p style="color:var(--muted);font-size:.86rem;margin-top:4px;">관리자 인증 중…</p>
+</div>
+
+<!-- ── 로그인 / 접근 거부 ── -->
+<div id="accessDenied" style="display:none;">
+  <div class="login-box">
+    <div style="font-size:2.4rem;margin-bottom:14px;">🔐</div>
+    <h2>ISAplan 관리자</h2>
+    <p id="accessMsg">관리자 계정(sigoultop@gmail.com)으로 로그인하세요.</p>
+    <button class="btn-google-login" id="btnAdminLogin">
+      <svg width="16" height="16" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.2 0 24 0 14.8 0 6.9 5.4 3 13.3l7.9 6.1C12.8 13 17.9 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.5-4.1 7-10.2 7-17.1z"/>
+        <path fill="#FBBC05" d="M10.9 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.8.9 7.4 2.5 10.6l8.4-6z"/>
+        <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.6-5.9c-2 1.4-4.7 2.2-7.6 2.2-6.1 0-11.2-3.5-13.1-8.6l-8.4 6C6.9 42.6 14.8 48 24 48z"/>
+      </svg>
+      Google로 로그인
+    </button>
+  </div>
+</div>
+
+<!-- ── 관리자 앱 ── -->
+<div id="adminApp" style="display:none;width:100%;">
+
+  <!-- 사이드바 -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">ISAplan<span>관리자 대시보드 v1.0</span></div>
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-tab="dashboard"><span class="icon">📊</span> 대시보드</button>
+      <button class="nav-btn" data-tab="users"><span class="icon">👥</span> 사용자 관리</button>
+      <button class="nav-btn" data-tab="plans"><span class="icon">📋</span> 계획 관리</button>
+      <button class="nav-btn" data-tab="settings"><span class="icon">📢</span> 공지/배너</button>
+      <button class="nav-btn" data-tab="feedback">
+        <span class="icon">💬</span> 피드백
+        <span class="nav-badge" id="fbBadge" style="display:none;"></span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-chip">
+        <img id="adminAvatar" class="admin-avatar" src="" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="admin-name" id="adminName">-</div>
+          <div class="admin-badge">ADMIN</div>
+        </div>
+      </div>
+      <button class="btn-logout" id="btnLogout">로그아웃</button>
+    </div>
+  </aside>
+
+  <!-- 메인 컨텐츠 -->
+  <main class="main">
+
+    <!-- ── 대시보드 ── -->
+    <section id="tab-dashboard" class="tab-section active">
+      <div class="page-title">대시보드</div>
+      <div class="page-sub">ISAplan 서비스 현황을 한눈에 확인하세요.</div>
+      <div class="stat-grid">
+        <div class="stat-card blue">
+          <div class="stat-label">총 사용자</div>
+          <div class="stat-value" id="statUsers">—</div>
+          <div class="stat-sub">Firestore 등록 계정</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">저장된 계획</div>
+          <div class="stat-value" id="statPlans">—</div>
+          <div class="stat-sub">전체 투자 계획 수</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">미읽음 피드백</div>
+          <div class="stat-value" id="statFeedback">—</div>
+          <div class="stat-sub">확인 필요 메시지</div>
+        </div>
+        <div class="stat-card" id="statMaintCard">
+          <div class="stat-label">서비스 상태</div>
+          <div class="stat-value" id="statMaint">—</div>
+          <div class="stat-sub" id="statMaintSub">불러오는 중…</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">최근 가입자 (최대 10명)</div></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th></th><th>이름</th><th>이메일</th><th>가입일</th><th>마지막 접속</th><th>상태</th></tr></thead>
+            <tbody id="recentUsersTbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:26px;">불러오는 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 사용자 관리 ── -->
+    <section id="tab-users" class="tab-section">
+      <div class="page-title">사용자 관리</div>
+      <div class="page-sub">가입 사용자 목록을 조회하고 관리합니다.</div>
+      <div class="search-bar">
+        <input class="search-input" id="userSearch" type="text" placeholder="이름 또는 이메일로 검색…">
+        <button class="btn btn-ghost" id="btnRefreshUsers">새로고침</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th></th><th>이름</th><th>이메일</th><th>가입일</th><th>마지막 접속</th><th>상태</th><th>관리</th></tr></thead>
+            <tbody id="usersTbody">
+              <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:26px;">불러오는 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 계획 관리 ── -->
+    <section id="tab-plans" class="tab-section">
+      <div class="page-title">계획 관리</div>
+      <div class="page-sub">전체 사용자의 저장된 투자 계획을 관리합니다.</div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+        <button class="btn btn-ghost" id="btnExportCSV">📥 CSV 내보내기</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>계획명</th><th>사용자 이메일</th><th>월 납입</th><th>수익률</th><th>ISA 유형</th><th>저장일</th><th>관리</th></tr></thead>
+            <tbody id="plansTbody">
+              <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:26px;">불러오는 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 공지/배너 ── -->
+    <section id="tab-settings" class="tab-section">
+      <div class="page-title">공지 / 배너</div>
+      <div class="page-sub">사이트 배너와 점검 모드를 설정합니다. 저장 즉시 적용됩니다.</div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:18px;">📢 상단 배너</div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>배너 활성화</h4>
+            <p>모든 페이지 상단에 배너 메시지를 표시합니다.</p>
+          </div>
+          <label class="toggle"><input type="checkbox" id="bannerActive"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="field">
+            <label>배너 메시지</label>
+            <input type="text" id="bannerText" placeholder="예: 🎉 새로운 기능이 업데이트되었습니다!">
+          </div>
+          <div class="field">
+            <label>배너 색상</label>
+            <select id="bannerColor">
+              <option value="blue">파란색 (기본)</option>
+              <option value="green">초록색 (성공/안내)</option>
+              <option value="yellow">노란색 (주의)</option>
+              <option value="red">빨간색 (경고)</option>
+            </select>
+          </div>
+          <div class="banner-preview blue" id="bannerPreview">배너 미리보기</div>
+          <button class="btn btn-primary" id="btnSaveBanner">저장</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:18px;">🔧 점검 모드</div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <h4>점검 모드 활성화</h4>
+            <p>일반 사용자에게 점검 안내 화면을 표시합니다. 관리자는 계속 이용 가능합니다.</p>
+          </div>
+          <label class="toggle"><input type="checkbox" id="maintenanceMode"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="field">
+            <label>점검 안내 메시지</label>
+            <textarea id="maintenanceMsg" placeholder="예: 현재 서버 점검 중입니다. 잠시 후 다시 시도해주세요. (완료 예정: 오후 3시)"></textarea>
+          </div>
+          <button class="btn btn-primary" id="btnSaveMaintenance">저장</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 피드백 ── -->
+    <section id="tab-feedback" class="tab-section">
+      <div class="page-title">피드백 / 문의</div>
+      <div class="page-sub">사용자가 보낸 피드백과 문의를 확인합니다. 클릭하면 전체 내용을 볼 수 있습니다.</div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">전체</button>
+        <button class="filter-tab" data-filter="unread">미읽음</button>
+        <button class="filter-tab" data-filter="bug">버그 신고</button>
+        <button class="filter-tab" data-filter="suggestion">건의사항</button>
+        <button class="filter-tab" data-filter="other">기타</button>
+      </div>
+      <div id="feedbackList">
+        <div class="empty-state"><div class="emoji">💬</div><p>불러오는 중…</p></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { auth, db, googleProvider } from './js/firebase-config.js';
+import {
+  onAuthStateChanged, signInWithPopup, signOut,
+} from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+import {
+  collection, collectionGroup, doc, getDoc, getDocs, setDoc,
+  deleteDoc, updateDoc, query, orderBy, where, limit,
+  serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+
+const ADMIN_EMAIL = 'sigoultop@gmail.com';
+
+// ── 토스트 ────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── 날짜 포맷 ──────────────────────────────────────────────────────
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+// ── 탭 네비게이션 ──────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.nav-btn[data-tab]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    if (tab === 'users')    loadUsers();
+    if (tab === 'plans')    loadPlans();
+    if (tab === 'feedback') loadFeedback();
+    if (tab === 'settings') loadSettings();
+  });
+});
+
+// ── 대시보드 ───────────────────────────────────────────────────────
+async function loadDashboard() {
+  // 사용자 수
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    document.getElementById('statUsers').textContent = snap.size;
+  } catch { document.getElementById('statUsers').textContent = 'err'; }
+
+  // 계획 수 (collectionGroup)
+  try {
+    const snap = await getDocs(collectionGroup(db, 'plans'));
+    document.getElementById('statPlans').textContent = snap.size;
+  } catch { document.getElementById('statPlans').textContent = '—'; }
+
+  // 미읽음 피드백
+  try {
+    const snap = await getDocs(query(collection(db, 'feedback'), where('read', '==', false)));
+    const cnt = snap.size;
+    document.getElementById('statFeedback').textContent = cnt;
+    const badge = document.getElementById('fbBadge');
+    if (cnt > 0) { badge.style.display = 'inline'; badge.textContent = cnt; }
+    else           badge.style.display = 'none';
+  } catch { document.getElementById('statFeedback').textContent = '—'; }
+
+  // 서비스 상태
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'global'));
+    const maint = snap.exists() ? snap.data().maintenanceMode : false;
+    const el   = document.getElementById('statMaint');
+    const card = document.getElementById('statMaintCard');
+    el.textContent = maint ? 'ON' : 'OFF';
+    el.style.color = maint ? 'var(--danger)' : 'var(--accent2)';
+    document.getElementById('statMaintSub').textContent = maint ? '⚠️ 점검 모드 중' : '✅ 정상 운영 중';
+  } catch { document.getElementById('statMaint').textContent = '—'; }
+
+  // 최근 가입자
+  try {
+    const snap = await getDocs(query(collection(db, 'users'), orderBy('lastLoginAt', 'desc'), limit(10)));
+    const tbody = document.getElementById('recentUsersTbody');
+    if (snap.empty) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">사용자 없음</td></tr>'; return; }
+    tbody.innerHTML = '';
+    snap.forEach(d => {
+      const u = d.data();
+      tbody.innerHTML += `<tr>
+        <td><img src="${u.photoURL||''}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;background:var(--surface2);" onerror="this.style.display='none'"></td>
+        <td style="font-weight:600">${u.displayName||'—'}</td>
+        <td style="color:var(--muted);font-size:.8rem">${u.email||'—'}</td>
+        <td>${fmtDate(u.createdAt)}</td>
+        <td>${fmtDate(u.lastLoginAt)}</td>
+        <td><span class="badge ${u.banned?'banned':'normal'}">${u.banned?'차단':'정상'}</span></td>
+      </tr>`;
+    });
+  } catch (e) { console.error(e); }
+}
+
+// ── 사용자 관리 ────────────────────────────────────────────────────
+let allUsers = [];
+
+async function loadUsers() {
+  const tbody = document.getElementById('usersTbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:26px;">불러오는 중…</td></tr>';
+  try {
+    const snap = await getDocs(query(collection(db, 'users'), orderBy('lastLoginAt', 'desc')));
+    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderUsers(allUsers);
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:26px;">${e.message}</td></tr>`;
+  }
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('usersTbody');
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:26px;">사용자 없음</td></tr>'; return; }
+  tbody.innerHTML = '';
+  users.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><img src="${u.photoURL||''}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:var(--surface2);" onerror="this.style.display='none'"></td>
+      <td style="font-weight:600">${u.displayName||'—'}</td>
+      <td style="color:var(--muted);font-size:.8rem">${u.email||'—'}</td>
+      <td>${fmtDate(u.createdAt)}</td>
+      <td>${fmtDate(u.lastLoginAt)}</td>
+      <td><span class="badge ${u.banned?'banned':'normal'}">${u.banned?'차단':'정상'}</span></td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-xs btn-viewplans" data-uid="${u.id}">계획 보기</button>
+        <button class="btn ${u.banned?'btn-ghost':'btn-warn'} btn-xs btn-ban" data-uid="${u.id}" data-banned="${u.banned?'1':'0'}">${u.banned?'차단 해제':'차단'}</button>
+      </td>`;
+    tbody.appendChild(tr);
+
+    // 계획 확장 행
+    const expandRow = document.createElement('tr');
+    expandRow.className = 'plans-expand-row';
+    expandRow.id = `planrow-${u.id}`;
+    expandRow.innerHTML = `<td colspan="7"><div class="plans-expand-inner" id="planinner-${u.id}"></div></td>`;
+    tbody.appendChild(expandRow);
+
+    tr.querySelector('.btn-viewplans').addEventListener('click', () => toggleUserPlans(u.id));
+    tr.querySelector('.btn-ban').addEventListener('click', () => toggleBan(u.id, u.banned));
+  });
+}
+
+async function toggleUserPlans(uid) {
+  const row   = document.getElementById(`planrow-${uid}`);
+  const inner = document.getElementById(`planinner-${uid}`);
+  if (row.classList.contains('open')) { row.classList.remove('open'); return; }
+  row.classList.add('open');
+  inner.innerHTML = '<span style="color:var(--muted);font-size:.82rem;">불러오는 중…</span>';
+  const snap = await getDocs(query(collection(db, 'users', uid, 'plans'), orderBy('createdAt', 'desc')));
+  if (snap.empty) { inner.innerHTML = '<span style="color:var(--muted);font-size:.82rem;">저장된 계획 없음</span>'; return; }
+  inner.innerHTML = '';
+  snap.forEach(d => {
+    const p = d.data();
+    const div = document.createElement('div');
+    div.className = 'plan-line';
+    div.innerHTML = `
+      <span><strong>${p.name||'(이름 없음)'}</strong> &nbsp;·&nbsp; 월 ${p.monthly}만원 &nbsp;·&nbsp; 수익률 ${p.rate}% &nbsp;·&nbsp; ${fmtDate(p.createdAt)}</span>
+      <button class="btn btn-danger btn-xs" data-pid="${d.id}" data-uid="${uid}" data-name="${p.name||''}">삭제</button>`;
+    div.querySelector('.btn-danger').addEventListener('click', async e => {
+      const { pid, uid: u2, name } = e.currentTarget.dataset;
+      if (!confirm(`"${name}" 계획을 삭제하시겠습니까?`)) return;
+      await deleteDoc(doc(db, 'users', u2, 'plans', pid));
+      toast('계획이 삭제되었습니다.', 'success');
+      row.classList.remove('open');
+      setTimeout(() => toggleUserPlans(u2), 100);
+    });
+    inner.appendChild(div);
+  });
+}
+
+async function toggleBan(uid, isBanned) {
+  if (!confirm(isBanned ? '이 사용자의 차단을 해제하시겠습니까?' : '이 사용자를 차단하시겠습니까?')) return;
+  await setDoc(doc(db, 'users', uid), { banned: !isBanned }, { merge: true });
+  toast(isBanned ? '차단이 해제되었습니다.' : '사용자가 차단되었습니다.', 'success');
+  loadUsers();
+}
+
+document.getElementById('userSearch').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  renderUsers(q ? allUsers.filter(u => (u.displayName||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)) : allUsers);
+});
+document.getElementById('btnRefreshUsers').addEventListener('click', loadUsers);
+
+// ── 계획 관리 ──────────────────────────────────────────────────────
+let allPlans = [];
+
+async function loadPlans() {
+  const tbody = document.getElementById('plansTbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:26px;">불러오는 중…</td></tr>';
+  try {
+    const snap = await getDocs(query(collectionGroup(db, 'plans'), orderBy('createdAt', 'desc')));
+    allPlans = snap.docs.map(d => ({ id: d.id, uid: d.ref.parent.parent.id, ...d.data() }));
+    renderPlans(allPlans);
+  } catch (e) {
+    console.error(e);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:26px;font-size:.82rem;">collectionGroup 쿼리 오류: Firestore 인덱스가 필요할 수 있습니다.<br><span style="color:var(--danger)">${e.message}</span></td></tr>`;
+  }
+}
+
+function renderPlans(plans) {
+  const tbody = document.getElementById('plansTbody');
+  if (!plans.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:26px;">저장된 계획 없음</td></tr>'; return; }
+  tbody.innerHTML = '';
+  plans.forEach(p => {
+    // 유저 이메일 찾기
+    const user = allUsers.find(u => u.id === p.uid);
+    const email = user?.email || p.uid.slice(0,8) + '…';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600">${p.name||'—'}</td>
+      <td style="color:var(--muted);font-size:.8rem">${email}</td>
+      <td>${p.monthly??'—'}만원</td>
+      <td>${p.rate??'—'}%</td>
+      <td>${p.isaType==='low-income'?'서민·농어민형':'일반형'}</td>
+      <td>${fmtDate(p.createdAt)}</td>
+      <td><button class="btn btn-danger btn-xs btn-delplan" data-uid="${p.uid}" data-pid="${p.id}" data-name="${p.name||''}">삭제</button></td>`;
+    tr.querySelector('.btn-delplan').addEventListener('click', async e => {
+      const { uid, pid, name } = e.currentTarget.dataset;
+      if (!confirm(`"${name}" 계획을 삭제하시겠습니까?`)) return;
+      await deleteDoc(doc(db, 'users', uid, 'plans', pid));
+      toast('삭제되었습니다.', 'success');
+      loadPlans();
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('btnExportCSV').addEventListener('click', () => {
+  if (!allPlans.length) { toast('내보낼 데이터가 없습니다.', 'error'); return; }
+  const header = '계획명,사용자ID,월납입(만원),수익률(%),ISA유형,저장일';
+  const rows = allPlans.map(p => `"${p.name}","${p.uid}",${p.monthly},${p.rate},"${p.isaType}","${fmtDate(p.createdAt)}"`);
+  const csv = '\uFEFF' + [header, ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = `isaplan_plans_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV 내보내기 완료!', 'success');
+});
+
+// ── 설정 (배너/점검) ───────────────────────────────────────────────
+async function loadSettings() {
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'global'));
+    if (snap.exists()) {
+      const d = snap.data();
+      document.getElementById('bannerActive').checked  = !!d.bannerActive;
+      document.getElementById('bannerText').value      = d.bannerText  || '';
+      document.getElementById('bannerColor').value     = d.bannerColor || 'blue';
+      document.getElementById('maintenanceMode').checked = !!d.maintenanceMode;
+      document.getElementById('maintenanceMsg').value  = d.maintenanceMsg || '';
+      updateBannerPreview();
+    }
+  } catch (e) { console.error(e); }
+}
+
+function updateBannerPreview() {
+  const text  = document.getElementById('bannerText').value || '배너 미리보기';
+  const color = document.getElementById('bannerColor').value;
+  const el = document.getElementById('bannerPreview');
+  el.textContent = text;
+  el.className = `banner-preview ${color}`;
+}
+document.getElementById('bannerText').addEventListener('input', updateBannerPreview);
+document.getElementById('bannerColor').addEventListener('change', updateBannerPreview);
+
+document.getElementById('btnSaveBanner').addEventListener('click', async () => {
+  await setDoc(doc(db, 'settings', 'global'), {
+    bannerActive: document.getElementById('bannerActive').checked,
+    bannerText:   document.getElementById('bannerText').value.trim(),
+    bannerColor:  document.getElementById('bannerColor').value,
+  }, { merge: true });
+  toast('배너 설정이 저장되었습니다.', 'success');
+  loadDashboard();
+});
+
+document.getElementById('btnSaveMaintenance').addEventListener('click', async () => {
+  await setDoc(doc(db, 'settings', 'global'), {
+    maintenanceMode: document.getElementById('maintenanceMode').checked,
+    maintenanceMsg:  document.getElementById('maintenanceMsg').value.trim(),
+  }, { merge: true });
+  toast('점검 모드 설정이 저장되었습니다.', 'success');
+  loadDashboard();
+});
+
+// ── 피드백 ────────────────────────────────────────────────────────
+let allFeedback = [];
+let fbFilter = 'all';
+
+async function loadFeedback() {
+  document.getElementById('feedbackList').innerHTML = '<div class="empty-state"><div class="emoji">💬</div><p>불러오는 중…</p></div>';
+  try {
+    const snap = await getDocs(query(collection(db, 'feedback'), orderBy('createdAt', 'desc')));
+    allFeedback = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderFeedback();
+  } catch (e) {
+    document.getElementById('feedbackList').innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><p style="color:var(--danger)">${e.message}</p></div>`;
+  }
+}
+
+function renderFeedback() {
+  const list = document.getElementById('feedbackList');
+  let items = allFeedback;
+  if (fbFilter === 'unread')     items = items.filter(f => !f.read);
+  else if (fbFilter !== 'all')   items = items.filter(f => f.category === fbFilter);
+
+  if (!items.length) { list.innerHTML = '<div class="empty-state"><div class="emoji">📭</div><p>피드백이 없습니다.</p></div>'; return; }
+
+  list.innerHTML = '';
+  items.forEach(f => {
+    const div = document.createElement('div');
+    div.className = `feedback-item ${f.read ? '' : 'unread-item'}`;
+    div.innerHTML = `
+      <div class="fb-header">
+        <span class="fb-from">${f.displayName || f.email || '익명'}</span>
+        <span class="fb-cat">${catLabel(f.category)}</span>
+        <span class="fb-date">${fmtDate(f.createdAt)}</span>
+        <span class="badge ${f.read ? 'read-badge' : 'unread'}">${f.read ? '읽음' : '미읽음'}</span>
+      </div>
+      <div class="fb-preview">${(f.message||'').slice(0, 130)}${(f.message||'').length > 130 ? '…' : ''}</div>
+      <div class="fb-full">${(f.message||'').replace(/\n/g,'<br>')}</div>
+      <div class="fb-actions">
+        ${!f.read ? `<button class="btn btn-ghost btn-sm btn-markread" data-id="${f.id}">읽음 처리</button>` : ''}
+        <button class="btn btn-danger btn-sm btn-delfb" data-id="${f.id}">삭제</button>
+      </div>`;
+    div.addEventListener('click', () => div.classList.toggle('expanded'));
+    div.querySelector('.btn-delfb')?.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!confirm('이 피드백을 삭제하시겠습니까?')) return;
+      await deleteDoc(doc(db, 'feedback', e.currentTarget.dataset.id));
+      toast('삭제되었습니다.', 'success');
+      loadFeedback();
+    });
+    div.querySelector('.btn-markread')?.addEventListener('click', async e => {
+      e.stopPropagation();
+      await updateDoc(doc(db, 'feedback', e.currentTarget.dataset.id), { read: true });
+      toast('읽음 처리되었습니다.');
+      loadFeedback();
+    });
+    list.appendChild(div);
+  });
+}
+
+function catLabel(c) { return { bug: '🐛 버그 신고', suggestion: '💡 건의사항', other: '📌 기타' }[c] || c || '기타'; }
+
+document.querySelectorAll('.filter-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    fbFilter = btn.dataset.filter;
+    renderFeedback();
+  });
+});
+
+// ── Auth ──────────────────────────────────────────────────────────
+const loading = document.getElementById('loadingScreen');
+const denied  = document.getElementById('accessDenied');
+const app     = document.getElementById('adminApp');
+const msgEl   = document.getElementById('accessMsg');
+
+document.getElementById('btnAdminLogin').addEventListener('click', async () => {
+  try { await signInWithPopup(auth, googleProvider); }
+  catch (e) { toast('로그인에 실패했습니다.', 'error'); }
+});
+
+onAuthStateChanged(auth, user => {
+  loading.style.display = 'none';
+  if (!user) {
+    denied.style.display = 'flex';
+    app.style.display    = 'none';
+    msgEl.textContent    = '관리자 계정으로 로그인하세요.';
+    return;
+  }
+  if (user.email !== ADMIN_EMAIL) {
+    denied.style.display = 'flex';
+    app.style.display    = 'none';
+    msgEl.textContent    = `⛔ ${user.email} 은 관리자가 아닙니다.`;
+    return;
+  }
+  // 관리자 확인
+  denied.style.display = 'none';
+  app.style.display    = 'flex';
+  document.getElementById('adminName').textContent = user.displayName || user.email;
+  document.getElementById('adminAvatar').src = user.photoURL || '';
+
+  document.getElementById('btnLogout').addEventListener('click', () =>
+    signOut(auth).then(() => location.href = './index.html')
+  );
+  loadDashboard();
+});
+</script>
+</body>
+</html>

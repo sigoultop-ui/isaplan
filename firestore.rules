@@ -1,28 +1,49 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 사용자 프로필: 본인만 읽기/쓰기
+    // 관리자 판별 함수
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'sigoultop@gmail.com';
+    }
+
+    // ── 사용자 프로필 ──────────────────────────────────────────────
     match /users/{userId} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+      // 본인 또는 관리자만 읽기
+      allow read: if request.auth != null &&
+                     (request.auth.uid == userId || isAdmin());
+      // 본인만 쓰기
+      allow write: if request.auth != null && request.auth.uid == userId;
 
-      // 저장된 투자 계획: 본인만 접근, 최대 50개 제한
+      // ── 투자 계획 (서브컬렉션) ───────────────────────────────────
       match /plans/{planId} {
-        allow read, delete: if request.auth != null
-                            && request.auth.uid == userId;
-
+        allow read, delete: if request.auth != null &&
+                               (request.auth.uid == userId || isAdmin());
         allow create: if request.auth != null
                       && request.auth.uid == userId
                       && request.resource.data.keys().hasAll(['name', 'monthly', 'rate', 'createdAt'])
                       && request.resource.data.monthly is number
                       && request.resource.data.rate    is number;
-
         allow update: if request.auth != null
-                      && request.auth.uid == userId
-                      && request.resource.data.updatedAt != resource.data.updatedAt;
+                      && request.auth.uid == userId;
       }
+    }
+
+    // ── collectionGroup 쿼리 (관리자 전용) ───────────────────────
+    match /{path=**}/plans/{planId} {
+      allow read, delete: if isAdmin();
+    }
+
+    // ── 사이트 설정 (배너/점검 모드) ─────────────────────────────
+    match /settings/{docId} {
+      allow read:  if true;       // 누구나 읽기 (배너·점검 모드 표시용)
+      allow write: if isAdmin();  // 관리자만 쓰기
+    }
+
+    // ── 피드백 ───────────────────────────────────────────────────
+    match /feedback/{feedbackId} {
+      allow create: if request.auth != null;          // 로그인 사용자 작성
+      allow read, update, delete: if isAdmin();       // 관리자만 조회·수정·삭제
     }
   }
 }

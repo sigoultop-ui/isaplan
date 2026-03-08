@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISAplan — 10년 투자 계획표</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #4f8ef7;
+      --accent2: #34d399;
+      --accent3: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --danger: #f87171;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 80px 16px 60px; /* nav 높이만큼 top padding */
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      height: 60px;
+      background: rgba(15, 17, 23, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-size: 0.95rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-save-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent2);
+      color: #0f1117;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity .2s, transform .2s;
+      white-space: nowrap;
+    }
+
+    .btn-save-nav:hover { opacity: .85; transform: translateY(-1px); }
+    .btn-save-nav:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    .btn-google {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      color: #1f2937;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity .2s;
+      white-space: nowrap;
+    }
+
+    .btn-google:hover { opacity: .9; }
+
+    .user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 12px 3px 3px;
+      cursor: pointer;
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .user-avatar-fallback {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .user-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      max-width: 90px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-signout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.72rem;
+      padding: 5px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+      white-space: nowrap;
+    }
+
+    .btn-signout:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── LAYOUT ── */
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 28px;
+    }
+
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 24px;
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── CONTROLS ── */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .field input:focus,
+    .field select:focus { border-color: var(--accent); }
+
+    .field input[type=range] {
+      padding: 6px 0;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .range-row { display: flex; align-items: center; gap: 10px; }
+    .range-row input[type=range] { flex: 1; }
+
+    .range-val {
+      min-width: 52px;
+      text-align: right;
+      font-size: 0.9rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── SUMMARY ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+
+    .stat {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .stat-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
+    .stat-value { font-size: 1.25rem; font-weight: 700; }
+    .stat-value.green { color: var(--accent2); }
+    .stat-value.blue  { color: var(--accent); }
+    .stat-value.amber { color: var(--accent3); }
+    .stat-value.red   { color: var(--danger); }
+
+    /* ── CHART ── */
+    .chart-wrap { position: relative; height: 280px; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    thead th {
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: right;
+    }
+
+    thead th:first-child { text-align: left; border-radius: 8px 0 0 8px; }
+    thead th:last-child  { border-radius: 0 8px 8px 0; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+
+    tbody tr:hover { background: var(--surface2); }
+
+    tbody td { padding: 11px 14px; text-align: right; }
+    tbody td:first-child { text-align: left; font-weight: 600; }
+    .highlight-row td { color: var(--accent2); font-weight: 700; }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .tag-isa  { background: #4f8ef722; color: var(--accent); border: 1px solid #4f8ef744; }
+    .tag-gain { background: #34d39922; color: var(--accent2); border: 1px solid #34d39944; }
+
+    /* ── NOTICE ── */
+    .notice {
+      background: #f59e0b11;
+      border: 1px solid #f59e0b33;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .notice strong { color: var(--accent3); }
+
+    /* ── MODAL OVERLAY ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.65);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 80px #00000080;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .modal-header h2 { font-size: 1rem; font-weight: 700; }
+
+    .btn-modal-close {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 1.3rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: color .2s, background .2s;
+    }
+
+    .btn-modal-close:hover { color: var(--text); background: var(--surface2); }
+
+    .modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Save form */
+    .save-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .save-form input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .save-form input:focus { border-color: var(--accent2); }
+
+    .btn-confirm-save {
+      background: var(--accent2);
+      color: #0f1117;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .2s;
+    }
+
+    .btn-confirm-save:hover { opacity: .85; }
+    .btn-confirm-save:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Plans list */
+    .plans-section-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .plan-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .plan-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      gap: 10px;
+    }
+
+    .plan-item-info { flex: 1; min-width: 0; }
+
+    .plan-item-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .plan-item-meta {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .plan-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .btn-load {
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+
+    .btn-load:hover { opacity: .8; }
+
+    .btn-delete {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+
+    .btn-delete:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* Empty / Loading states */
+    .state-empty, .state-loading {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 30px 0;
+    }
+
+    /* Login prompt inside modal */
+    .login-prompt {
+      text-align: center;
+      padding: 32px 0;
+    }
+
+    .login-prompt p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 22px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+      z-index: 999;
+      box-shadow: 0 8px 32px #00000060;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+      opacity: 0;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { border-color: var(--accent2); color: var(--accent2); }
+    .toast.error   { border-color: var(--danger);  color: var(--danger); }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 16px; }
+      h1 { font-size: 1.35rem; }
+      .card { padding: 16px; }
+      .btn-save-nav span { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="index.html" class="nav-logo">ISAplan</a>
+  <div class="nav-right">
+    <button class="btn-save-nav" id="btnOpenSave" title="계획 저장 / 불러오기">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/>
+        <polyline points="7 3 7 8 15 8"/>
+      </svg>
+      <span>계획 저장/불러오기</span>
+    </button>
+    <div id="authArea"><!-- JS 채움 --></div>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="layout">
+
+  <div>
+    <h1>ISAplan 10년 투자 계획표</h1>
+    <p class="subtitle">개인종합자산관리계좌(ISA) + ETF 장기투자 시뮬레이터</p>
+  </div>
+
+  <!-- 투자 조건 -->
+  <div class="card">
+    <div class="card-title">투자 조건 설정</div>
+    <div class="controls-grid">
+
+      <div class="field">
+        <label>ISA 계좌 유형</label>
+        <select id="isaType">
+          <option value="general">일반형 (비과세 200만원)</option>
+          <option value="youth">서민·농어민형 (비과세 400만원)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>월 납입액 (만원)</label>
+        <div class="range-row">
+          <input type="range" id="monthly" min="10" max="166" step="1" value="50" oninput="sync('monthly','monthlyVal')" />
+          <span class="range-val" id="monthlyVal">50만원</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>연 기대 수익률 (%)</label>
+        <div class="range-row">
+          <input type="range" id="rate" min="3" max="20" step="0.5" value="8" oninput="sync('rate','rateVal')" />
+          <span class="range-val" id="rateVal">8.0%</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>연 납입 증액 (만원/년)</label>
+        <div class="range-row">
+          <input type="range" id="increment" min="0" max="50" step="1" value="0" oninput="sync('increment','incrementVal')" />
+          <span class="range-val" id="incrementVal">0만원</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>투자 시작 연도</label>
+        <input type="number" id="startYear" value="2025" min="2020" max="2040" />
+      </div>
+
+      <div class="field">
+        <label>과세 방식 비교</label>
+        <select id="taxMode">
+          <option value="isa">ISA 과세 (비과세+9.9% 분리과세)</option>
+          <option value="general">일반 과세 (15.4% 배당·이자소득세)</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 요약 -->
+  <div class="card">
+    <div class="card-title">10년 후 예상 결과</div>
+    <div class="summary-grid" id="summaryGrid"></div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="card">
+    <div class="card-title">자산 성장 추이</div>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="card">
+    <div class="card-title">연도별 상세 내역</div>
+    <div class="table-wrap">
+      <table id="planTable">
+        <thead>
+          <tr>
+            <th>연도</th>
+            <th>월 납입</th>
+            <th>연 납입</th>
+            <th>누적 원금</th>
+            <th>연간 수익</th>
+            <th>누적 총자산</th>
+            <th>누적 수익</th>
+            <th>수익률</th>
+            <th>절세 효과</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 공지 -->
+  <div class="notice">
+    <strong>주요 ISA 규정 안내 (2025년 기준)</strong><br>
+    • 연간 납입 한도: <strong>2,000만원</strong> (최대 5년 이월 시 1억원까지 납입 가능)<br>
+    • 의무 가입 기간: <strong>3년</strong> (중도 해지 시 세제 혜택 소멸)<br>
+    • 비과세 한도: 일반형 <strong>200만원</strong> / 서민·농어민형 <strong>400만원</strong> 초과분은 9.9% 분리과세<br>
+    • 본 계획표는 투자 참고용 시뮬레이션이며, 실제 투자 성과를 보장하지 않습니다.
+  </div>
+
+</div>
+
+<!-- ── 저장/불러오기 모달 ── -->
+<div class="modal-overlay" id="planModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>내 투자 계획</h2>
+      <button class="btn-modal-close" id="btnCloseModal" aria-label="닫기">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- JS로 채워짐 -->
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ── 계산기 로직 (non-module) ── -->
+<script>
+const fmt  = (v) => v.toLocaleString('ko-KR');
+const fmtM = (v) => fmt(Math.round(v)) + '만원';
+const pct  = (v) => v.toFixed(1) + '%';
+
+function sync(rangeId, labelId) {
+  const el  = document.getElementById(rangeId);
+  const lbl = document.getElementById(labelId);
+  const v   = parseFloat(el.value);
+  lbl.textContent = rangeId === 'rate' ? pct(v) : fmt(v) + '만원';
+  render();
+}
+
+function $(id) { return document.getElementById(id); }
+
+let chartInst = null;
+
+function render() {
+  const isaType   = $('isaType').value;
+  const monthly   = parseFloat($('monthly').value);
+  const rate      = parseFloat($('rate').value) / 100;
+  const increment = parseFloat($('increment').value);
+  const startYear = parseInt($('startYear').value);
+  const taxMode   = $('taxMode').value;
+
+  const taxFreeLimit = isaType === 'youth' ? 400 : 200;
+  const YEARS       = 10;
+  const ANNUAL_LIMIT = 2000;
+
+  const rows = [];
+  let cumPrincipal = 0, cumAsset = 0, cumProfit = 0, cumTaxSaved = 0;
+
+  for (let y = 1; y <= YEARS; y++) {
+    const mon          = Math.min(monthly + increment * (y - 1), Math.floor(ANNUAL_LIMIT / 12));
+    const annualDeposit = Math.min(mon * 12, ANNUAL_LIMIT);
+    const monthlyRate   = rate / 12;
+
+    let assetAfterGrowth = cumAsset;
+    for (let m = 1; m <= 12; m++) {
+      assetAfterGrowth = assetAfterGrowth * (1 + monthlyRate) + mon;
+    }
+
+    const yearProfit = assetAfterGrowth - cumAsset - annualDeposit;
+    let taxSaved = 0;
+
+    if (taxMode === 'isa') {
+      const totalProfit     = cumProfit + yearProfit;
+      const taxableNow      = Math.max(0, totalProfit - taxFreeLimit);
+      const taxablePrev     = Math.max(0, cumProfit - taxFreeLimit);
+      const marginalTaxable = Math.max(0, taxableNow - taxablePrev);
+      taxSaved = yearProfit * 0.154 - marginalTaxable * 0.099;
+    }
+
+    cumPrincipal += annualDeposit;
+    cumAsset      = assetAfterGrowth;
+    cumProfit     = cumAsset - cumPrincipal;
+    cumTaxSaved  += taxSaved;
+
+    rows.push({ year: startYear + y - 1, y, mon, annualDeposit, cumPrincipal, yearProfit, cumAsset, cumProfit, returnRate: (cumProfit / cumPrincipal) * 100, taxSaved, cumTaxSaved });
+  }
+
+  const last = rows[rows.length - 1];
+
+  // Summary
+  $('summaryGrid').innerHTML = [
+    { label: '누적 원금',    value: fmtM(last.cumPrincipal),  cls: 'blue'  },
+    { label: '누적 총자산',  value: fmtM(last.cumAsset),      cls: 'green' },
+    { label: '누적 수익',    value: fmtM(last.cumProfit),     cls: 'green' },
+    { label: '총 수익률',    value: pct(last.returnRate),     cls: 'amber' },
+    { label: '연환산 수익률',value: pct(parseFloat($('rate').value)), cls: 'amber' },
+    { label: 'ISA 절세 효과', value: fmtM(last.cumTaxSaved), cls: taxMode === 'isa' ? 'green' : 'red' },
+  ].map(s => `<div class="stat"><div class="stat-label">${s.label}</div><div class="stat-value ${s.cls}">${s.value}</div></div>`).join('');
+
+  // Table
+  $('tableBody').innerHTML = rows.map(r => `
+    <tr class="${r.y === YEARS ? 'highlight-row' : ''}">
+      <td>${r.year}년 <span class="tag tag-isa">${r.y}년차</span></td>
+      <td>${fmtM(r.mon)}</td>
+      <td>${fmtM(r.annualDeposit)}</td>
+      <td>${fmtM(r.cumPrincipal)}</td>
+      <td><span class="tag tag-gain">+${fmtM(r.yearProfit)}</span></td>
+      <td>${fmtM(r.cumAsset)}</td>
+      <td>${fmtM(r.cumProfit)}</td>
+      <td>${pct(r.returnRate)}</td>
+      <td style="color:${taxMode==='isa'?'var(--accent2)':'var(--muted)'}">
+        ${taxMode==='isa' ? '+' + fmtM(r.taxSaved) : '-'}
+      </td>
+    </tr>`).join('');
+
+  // Chart
+  const labels   = rows.map(r => r.year + '년');
+  const dsAsset  = rows.map(r => Math.round(r.cumAsset));
+  const dsPrinc  = rows.map(r => Math.round(r.cumPrincipal));
+  const dsProfit = rows.map(r => Math.round(r.cumProfit));
+
+  if (chartInst) chartInst.destroy();
+
+  chartInst = new Chart($('chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '누적 원금', data: dsPrinc,  backgroundColor: '#4f8ef755', borderColor: '#4f8ef7', borderWidth: 1, borderRadius: 4, order: 2 },
+        { label: '누적 수익', data: dsProfit, backgroundColor: '#34d39955', borderColor: '#34d399', borderWidth: 1, borderRadius: 4, order: 2 },
+        { label: '누적 총자산', data: dsAsset, type: 'line', borderColor: '#f59e0b', backgroundColor: 'transparent', borderWidth: 2.5, pointBackgroundColor: '#f59e0b', pointRadius: 4, tension: 0.35, order: 1 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#8892b0', font: { size: 12 }, boxWidth: 14 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}만원` } },
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#8892b0', font: { size: 11 } }, grid: { color: '#2e325022' } },
+        y: { stacked: true, ticks: { color: '#8892b0', font: { size: 11 }, callback: v => v / 10000 >= 1 ? (v/10000).toFixed(0)+'억' : v+'만' }, grid: { color: '#2e325044' } },
+      },
+    },
+  });
+}
+
+// 현재 설정 읽기 (Firebase 모듈에서 호출)
+function getCurrentSettings() {
+  return {
+    monthly:   parseFloat(document.getElementById('monthly').value),
+    rate:      parseFloat(document.getElementById('rate').value),
+    increment: parseFloat(document.getElementById('increment').value),
+    isaType:   document.getElementById('isaType').value,
+    taxMode:   document.getElementById('taxMode').value,
+    startYear: parseInt(document.getElementById('startYear').value),
+  };
+}
+
+// 설정 적용 (저장된 계획 불러오기 시 호출)
+function applySettings(s) {
+  document.getElementById('monthly').value   = s.monthly;
+  document.getElementById('monthlyVal').textContent = s.monthly + '만원';
+  document.getElementById('rate').value      = s.rate;
+  document.getElementById('rateVal').textContent    = s.rate.toFixed(1) + '%';
+  document.getElementById('increment').value = s.increment;
+  document.getElementById('incrementVal').textContent = s.increment + '만원';
+  document.getElementById('isaType').value   = s.isaType;
+  document.getElementById('taxMode').value   = s.taxMode;
+  document.getElementById('startYear').value = s.startYear;
+  render();
+}
+
+render();
+['isaType', 'startYear', 'taxMode'].forEach(id =>
+  document.getElementById(id).addEventListener('change', render)
+);
+</script>
+
+<!-- ── Firebase Auth + Firestore (module) ── -->
+<script type="module">
+  import { auth, db, googleProvider } from './js/firebase-config.js';
+  import {
+    onAuthStateChanged,
+    signInWithPopup,
+    signOut,
+  } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+  import {
+    collection, addDoc, getDocs, deleteDoc, doc,
+    serverTimestamp, query, orderBy, setDoc,
+  } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js';
+
+  // ── Toast ────────────────────────────────────────────────────
+  function showToast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className   = `toast ${type} show`;
+    setTimeout(() => el.classList.remove('show'), 2800);
+  }
+
+  // ── Auth UI ──────────────────────────────────────────────────
+  const authArea = document.getElementById('authArea');
+
+  function renderAuthNav(user) {
+    if (user) {
+      const initial = (user.displayName || user.email || '?')[0].toUpperCase();
+      authArea.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="user-chip" title="${user.email}">
+            ${user.photoURL
+              ? `<img class="user-avatar" src="${user.photoURL}" alt="" referrerpolicy="no-referrer">`
+              : `<div class="user-avatar-fallback">${initial}</div>`}
+            <span class="user-name">${user.displayName || user.email}</span>
+          </div>
+          <button class="btn-signout" id="btnSignOut">로그아웃</button>
+        </div>`;
+      document.getElementById('btnSignOut').addEventListener('click', () =>
+        signOut(auth).then(() => showToast('로그아웃 되었습니다.'))
+      );
+    } else {
+      authArea.innerHTML = `
+        <button class="btn-google" id="btnSignIn">
+          <svg width="15" height="15" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.2 0 24 0 14.8 0 6.9 5.4 3 13.3l7.9 6.1C12.8 13 17.9 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.5-4.1 7-10.2 7-17.1z"/>
+            <path fill="#FBBC05" d="M10.9 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.8.9 7.4 2.5 10.6l8.4-6z"/>
+            <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.6-5.9c-2 1.4-4.7 2.2-7.6 2.2-6.1 0-11.2-3.5-13.1-8.6l-8.4 6C6.9 42.6 14.8 48 24 48z"/>
+          </svg>
+          Google로 로그인
+        </button>`;
+      document.getElementById('btnSignIn').addEventListener('click', () =>
+        signInWithPopup(auth, googleProvider).catch(() =>
+          showToast('로그인에 실패했습니다.', 'error')
+        )
+      );
+    }
+  }
+
+  // ── 사용자 프로필 Firestore 저장 ─────────────────────────────
+  async function upsertUserProfile(user) {
+    const ref = doc(db, 'users', user.uid);
+    await setDoc(ref, {
+      displayName: user.displayName || '',
+      email:       user.email || '',
+      photoURL:    user.photoURL  || '',
+      lastLoginAt: serverTimestamp(),
+    }, { merge: true });
+  }
+
+  // ── 모달 ─────────────────────────────────────────────────────
+  const modal       = document.getElementById('planModal');
+  const modalBody   = document.getElementById('modalBody');
+  const btnOpen     = document.getElementById('btnOpenSave');
+  const btnClose    = document.getElementById('btnCloseModal');
+
+  btnOpen.addEventListener('click',  () => { modal.classList.add('open'); renderModal(); });
+  btnClose.addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+  let currentUser = null;
+
+  async function renderModal() {
+    if (!currentUser) {
+      // 비로그인 상태
+      modalBody.innerHTML = `
+        <div class="login-prompt">
+          <p>투자 계획을 저장하고 언제든지 불러오려면<br>Google 계정으로 로그인하세요.</p>
+          <button class="btn-google" id="btnModalSignIn" style="margin:0 auto;">
+            <svg width="15" height="15" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.2 0 24 0 14.8 0 6.9 5.4 3 13.3l7.9 6.1C12.8 13 17.9 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.5-4.1 7-10.2 7-17.1z"/>
+              <path fill="#FBBC05" d="M10.9 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.8.9 7.4 2.5 10.6l8.4-6z"/>
+              <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.6-5.9c-2 1.4-4.7 2.2-7.6 2.2-6.1 0-11.2-3.5-13.1-8.6l-8.4 6C6.9 42.6 14.8 48 24 48z"/>
+            </svg>
+            Google로 로그인
+          </button>
+        </div>`;
+      document.getElementById('btnModalSignIn').addEventListener('click', () =>
+        signInWithPopup(auth, googleProvider)
+          .then(() => renderModal())
+          .catch(() => showToast('로그인에 실패했습니다.', 'error'))
+      );
+      return;
+    }
+
+    // 로그인 상태: 저장 폼 + 목록
+    modalBody.innerHTML = `
+      <div class="plans-section-title" style="margin-bottom:10px;">현재 계획 저장</div>
+      <div class="save-form">
+        <input id="planNameInput" type="text" placeholder="계획 이름 (예: 안정형 10년)" maxlength="30" />
+        <button class="btn-confirm-save" id="btnConfirmSave">저장</button>
+      </div>
+      <div class="plans-section-title">저장된 계획</div>
+      <div class="plan-list" id="planList">
+        <div class="state-loading">불러오는 중…</div>
+      </div>`;
+
+    document.getElementById('planNameInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btnConfirmSave').click();
+    });
+
+    document.getElementById('btnConfirmSave').addEventListener('click', savePlan);
+
+    loadPlans();
+  }
+
+  // ── 저장 ─────────────────────────────────────────────────────
+  async function savePlan() {
+    const nameInput = document.getElementById('planNameInput');
+    const btn       = document.getElementById('btnConfirmSave');
+    const name      = nameInput.value.trim();
+
+    if (!name) { nameInput.focus(); showToast('계획 이름을 입력하세요.', 'error'); return; }
+
+    btn.disabled    = true;
+    btn.textContent = '저장 중…';
+
+    try {
+      const settings = getCurrentSettings(); // 계산기 로직(non-module)에서 노출된 함수
+      const plansRef  = collection(db, 'users', currentUser.uid, 'plans');
+      await addDoc(plansRef, { name, ...settings, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      nameInput.value = '';
+      showToast(`"${name}" 저장 완료!`);
+      loadPlans();
+    } catch (e) {
+      console.error(e);
+      showToast('저장에 실패했습니다.', 'error');
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = '저장';
+    }
+  }
+
+  // ── 목록 불러오기 ─────────────────────────────────────────────
+  async function loadPlans() {
+    const listEl  = document.getElementById('planList');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="state-loading">불러오는 중…</div>';
+
+    try {
+      const q    = query(collection(db, 'users', currentUser.uid, 'plans'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        listEl.innerHTML = '<div class="state-empty">저장된 계획이 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      snap.forEach(docSnap => {
+        const d    = docSnap.data();
+        const date = d.createdAt?.toDate
+          ? d.createdAt.toDate().toLocaleDateString('ko-KR')
+          : '날짜 미상';
+
+        const item = document.createElement('div');
+        item.className = 'plan-item';
+        item.innerHTML = `
+          <div class="plan-item-info">
+            <div class="plan-item-name">${d.name}</div>
+            <div class="plan-item-meta">월 ${d.monthly}만원 · 수익률 ${d.rate}% · ${date}</div>
+          </div>
+          <div class="plan-item-actions">
+            <button class="btn-load" data-id="${docSnap.id}">불러오기</button>
+            <button class="btn-delete" data-id="${docSnap.id}">삭제</button>
+          </div>`;
+
+        item.querySelector('.btn-load').addEventListener('click', () => {
+          applySettings(d); // 계산기 non-module 함수
+          modal.classList.remove('open');
+          showToast(`"${d.name}" 계획을 불러왔습니다.`);
+        });
+
+        item.querySelector('.btn-delete').addEventListener('click', async () => {
+          if (!confirm(`"${d.name}" 계획을 삭제하시겠습니까?`)) return;
+          await deleteDoc(doc(db, 'users', currentUser.uid, 'plans', docSnap.id));
+          showToast(`"${d.name}" 삭제 완료.`);
+          loadPlans();
+        });
+
+        listEl.appendChild(item);
+      });
+    } catch (e) {
+      console.error(e);
+      listEl.innerHTML = '<div class="state-empty">목록을 불러오지 못했습니다.</div>';
+    }
+  }
+
+  // ── Auth 상태 감지 ────────────────────────────────────────────
+  onAuthStateChanged(auth, user => {
+    currentUser = user;
+    renderAuthNav(user);
+    if (user) upsertUserProfile(user).catch(console.error);
+    // 모달이 열려 있으면 갱신
+    if (modal.classList.contains('open')) renderModal();
+  });
+</script>
+
+</body>
+</html>

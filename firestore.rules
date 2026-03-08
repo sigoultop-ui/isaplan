@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 사용자 프로필: 본인만 읽기/쓰기
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+
+      // 저장된 투자 계획: 본인만 접근, 최대 50개 제한
+      match /plans/{planId} {
+        allow read, delete: if request.auth != null
+                            && request.auth.uid == userId;
+
+        allow create: if request.auth != null
+                      && request.auth.uid == userId
+                      && request.resource.data.keys().hasAll(['name', 'monthly', 'rate', 'createdAt'])
+                      && request.resource.data.monthly is number
+                      && request.resource.data.rate    is number;
+
+        allow update: if request.auth != null
+                      && request.auth.uid == userId
+                      && request.resource.data.updatedAt != resource.data.updatedAt;
+      }
+    }
+  }
+}

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISAplan — 10년 후를 설계하세요</title>
+  <style>
+    :root {
+      --bg: #07090f;
+      --surface: #10131e;
+      --border: #1e2340;
+      --accent: #4f8ef7;
+      --accent2: #34d399;
+      --accent3: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 60px;
+      background: rgba(7, 9, 15, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: -.01em;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: opacity .2s, transform .2s;
+      white-space: nowrap;
+    }
+
+    .nav-cta:hover { opacity: .85; transform: translateY(-1px); }
+
+    /* Auth UI */
+    .btn-google {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      color: #1f2937;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity .2s, transform .2s;
+      white-space: nowrap;
+    }
+
+    .btn-google:hover { opacity: .9; transform: translateY(-1px); }
+
+    .btn-google svg { flex-shrink: 0; }
+
+    .user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 12px 4px 4px;
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .user-avatar-fallback {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .user-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-signout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+
+    .btn-signout:hover { border-color: var(--danger, #f87171); color: #f87171; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 100px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* animated gradient blobs */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: .25;
+      animation: drift 12s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+
+    .blob1 { width: 520px; height: 520px; background: #4f8ef7; top: -120px; left: -140px; animation-delay: 0s; }
+    .blob2 { width: 400px; height: 400px; background: #34d399; bottom: -100px; right: -80px; animation-delay: -4s; }
+    .blob3 { width: 300px; height: 300px; background: #f59e0b; top: 40%; left: 55%; animation-delay: -8s; }
+
+    @keyframes drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(40px, 30px) scale(1.08); }
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: #4f8ef711;
+      border: 1px solid #4f8ef744;
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .badge-dot {
+      width: 7px; height: 7px;
+      background: var(--accent2);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(.7); }
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 6vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -.02em;
+      margin-bottom: 22px;
+    }
+
+    h1 .highlight {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.75;
+      margin-bottom: 40px;
+    }
+
+    .cta-group {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--accent), #6fa8ff);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 15px 34px;
+      border-radius: 12px;
+      text-decoration: none;
+      box-shadow: 0 8px 32px #4f8ef740;
+      transition: transform .25s, box-shadow .25s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 40px #4f8ef760;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 14px 30px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      text-decoration: none;
+      transition: border-color .2s, background .2s;
+    }
+
+    .btn-secondary:hover { border-color: var(--accent); background: #4f8ef70a; }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin-top: 70px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+      max-width: 720px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .stat-item {
+      flex: 1;
+      min-width: 150px;
+      padding: 20px 24px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+
+    .stat-item:last-child { border-right: none; }
+
+    .stat-num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* ── SECTION COMMON ── */
+    section {
+      padding: 100px 24px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1.25;
+      margin-bottom: 14px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.75;
+      max-width: 540px;
+    }
+
+    /* ── FEATURES ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 18px;
+      margin-top: 52px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color .25s, transform .25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .feature-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+    .feature-card:hover::before { opacity: 1; }
+
+    .feature-icon {
+      width: 46px; height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 18px;
+    }
+
+    .fi-blue  { background: #4f8ef715; }
+    .fi-green { background: #34d39915; }
+    .fi-amber { background: #f59e0b15; }
+    .fi-pink  { background: #ec489915; }
+    .fi-purple{ background: #a78bfa15; }
+    .fi-teal  { background: #2dd4bf15; }
+
+    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p  { font-size: 0.85rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── HOW IT WORKS ── */
+    .steps {
+      margin-top: 52px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0;
+      position: relative;
+    }
+
+    .step {
+      padding: 32px 28px;
+      position: relative;
+    }
+
+    .step-num {
+      font-size: 2.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent) 0%, transparent 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .step p  { font-size: 0.84rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── ISA INFO ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 52px;
+    }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+    }
+
+    .info-card h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .info-card li {
+      font-size: 0.84rem;
+      color: var(--muted);
+      display: flex;
+      gap: 10px;
+      line-height: 1.6;
+    }
+
+    .info-card li::before {
+      content: '›';
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ── CTA FINAL ── */
+    .cta-section {
+      text-align: center;
+      padding: 120px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section .blob1 { opacity: .15; }
+    .cta-section .blob2 { opacity: .12; }
+
+    .cta-section h2 {
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      margin-bottom: 18px;
+    }
+
+    .cta-section p {
+      color: var(--muted);
+      font-size: 1rem;
+      margin-bottom: 40px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: 0 20px; }
+      .info-grid { grid-template-columns: 1fr; }
+      .step { padding: 20px; }
+    }
+
+    /* ── SCROLL REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity .65s ease, transform .65s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* stagger children */
+    .reveal-children > * {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+
+    .reveal-children.visible > *:nth-child(1) { opacity:1; transform:none; transition-delay:.05s; }
+    .reveal-children.visible > *:nth-child(2) { opacity:1; transform:none; transition-delay:.15s; }
+    .reveal-children.visible > *:nth-child(3) { opacity:1; transform:none; transition-delay:.25s; }
+    .reveal-children.visible > *:nth-child(4) { opacity:1; transform:none; transition-delay:.35s; }
+    .reveal-children.visible > *:nth-child(5) { opacity:1; transform:none; transition-delay:.45s; }
+    .reveal-children.visible > *:nth-child(6) { opacity:1; transform:none; transition-delay:.55s; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="logo">ISAplan</span>
+  <div class="nav-right">
+    <div id="authArea"><!-- JS로 채워짐 --></div>
+    <a href="calculator.html" class="nav-cta" id="navCta">계획표 시작하기 →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+
+  <div class="badge"><span class="badge-dot"></span>ISA + ETF 10년 장기 시뮬레이터</div>
+
+  <h1>
+    10년 후의 나를<br/>
+    <span class="highlight">지금 설계하세요</span>
+  </h1>
+
+  <p class="hero-sub">
+    ISA 절세 혜택과 ETF 복리 투자를 조합한 최적의 10년 투자 계획을<br/>
+    몇 초 만에 시뮬레이션하세요. 원금·수익·절세 효과까지 한눈에.
+  </p>
+
+  <div class="cta-group">
+    <a href="calculator.html" class="btn-primary">
+      <span>무료로 시작하기</span>
+      <span>→</span>
+    </a>
+    <a href="#features" class="btn-secondary">기능 살펴보기</a>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num">200만원</div>
+      <div class="stat-desc">일반형 비과세 한도</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">9.9%</div>
+      <div class="stat-desc">초과분 분리과세율</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">2,000만</div>
+      <div class="stat-desc">연간 납입 한도</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">10년</div>
+      <div class="stat-desc">복리 시뮬레이션</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="reveal">
+    <div class="section-label">Features</div>
+    <div class="section-title">계획표 하나로<br/>모든 것을 파악</div>
+    <p class="section-sub">복잡한 세금 계산과 복리 시뮬레이션을 자동화해 투자 결정에 집중할 수 있게 도와드립니다.</p>
+  </div>
+
+  <div class="features-grid reveal-children">
+    <div class="feature-card">
+      <div class="feature-icon fi-blue">📊</div>
+      <h3>실시간 복리 계산</h3>
+      <p>월 납입액, 수익률, 증액 계획을 슬라이더로 조절하면 10년치 결과가 즉시 업데이트됩니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-green">🛡️</div>
+      <h3>ISA 절세 효과 분석</h3>
+      <p>일반 과세(15.4%)와 ISA 과세(비과세 + 9.9% 분리과세)를 비교해 실제 절세액을 연도별로 보여줍니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-amber">📈</div>
+      <h3>자산 성장 시각화</h3>
+      <p>원금·수익 누적 막대 차트와 총자산 라인 차트로 복리의 힘을 직관적으로 확인할 수 있습니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-pink">💰</div>
+      <h3>연간 납입 증액 설정</h3>
+      <p>소득이 늘어나는 만큼 납입액도 늘리는 현실적인 계획을 세울 수 있습니다. 연 한도 초과는 자동 차단됩니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-purple">🧾</div>
+      <h3>연도별 상세 테이블</h3>
+      <p>각 연도의 월납입·연납입·누적원금·연간수익·총자산·절세효과를 표 형태로 정리해 줍니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-teal">⚖️</div>
+      <h3>계좌 유형 비교</h3>
+      <p>일반형·서민형·농어민형 ISA의 비과세 한도 차이를 반영한 맞춤 시뮬레이션을 제공합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="reveal">
+    <div class="section-label">How it works</div>
+    <div class="section-title">3단계로 완성하는<br/>나만의 투자 계획</div>
+  </div>
+
+  <div class="steps reveal-children">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h3>조건 입력</h3>
+      <p>월 납입액, 기대 수익률, ISA 유형 등 본인 상황에 맞게 슬라이더를 조절하세요.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h3>결과 확인</h3>
+      <p>10년 누적 자산, 수익률, ISA 절세 효과를 차트와 표로 즉시 확인하세요.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h3>계획 실행</h3>
+      <p>시뮬레이션 결과를 바탕으로 ISA 계좌를 개설하고 ETF 적립식 투자를 시작하세요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ISA INFO -->
+<section id="info">
+  <div class="reveal">
+    <div class="section-label">ISA 핵심 정보</div>
+    <div class="section-title">알고 시작하면<br/>더 유리합니다</div>
+  </div>
+
+  <div class="info-grid reveal">
+    <div class="info-card">
+      <h3>🏦 ISA 기본 규정</h3>
+      <ul>
+        <li>연간 납입 한도 <strong style="color:#e2e8f0">2,000만원</strong> (미납분 이월 가능)</li>
+        <li>의무 가입 기간 최소 <strong style="color:#e2e8f0">3년</strong></li>
+        <li>만기 해지 시 비과세·분리과세 혜택 적용</li>
+        <li>19세 이상 거주자 가입 가능 (소득 요건 없음)</li>
+        <li>한 사람 당 하나의 ISA 계좌만 유지 가능</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>💡 절세 혜택 비교</h3>
+      <ul>
+        <li>일반형 비과세 <strong style="color:#e2e8f0">200만원</strong> / 서민·농어민형 <strong style="color:#e2e8f0">400만원</strong></li>
+        <li>초과 수익 분리과세 <strong style="color:#e2e8f0">9.9%</strong> (일반 15.4% 대비 유리)</li>
+        <li>ETF 매매차익도 ISA 내에서 과세 이연 효과</li>
+        <li>배당소득·이자소득 모두 절세 혜택 적용</li>
+        <li>금융소득종합과세 대상자에게 특히 유리</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<div class="cta-section">
+  <div class="blob blob1" style="top:-100px;left:-200px;"></div>
+  <div class="blob blob2" style="bottom:-80px;right:-150px;"></div>
+
+  <div class="reveal">
+    <h2>지금 바로<br/><span style="background:linear-gradient(135deg,#4f8ef7,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">계획표를 만들어보세요</span></h2>
+    <p>무료, 설치 불필요 — 바로 시작할 수 있습니다.</p>
+    <a href="calculator.html" class="btn-primary" style="font-size:1.05rem;padding:17px 44px;">
+      10년 투자 계획 시작하기 →
+    </a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>ISAplan &nbsp;·&nbsp; 투자 시뮬레이션 참고용 서비스</div>
+  <div style="margin-top:6px">본 서비스는 투자 참고용이며 투자 성과를 보장하지 않습니다. 세법 변경에 따라 내용이 달라질 수 있습니다.</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal, .reveal-children').forEach(el => observer.observe(el));
+</script>
+
+<script type="module">
+  import { auth, googleProvider } from './js/firebase-config.js';
+  import {
+    onAuthStateChanged,
+    signInWithPopup,
+    signOut,
+  } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js';
+
+  const authArea = document.getElementById('authArea');
+
+  function renderAuth(user) {
+    if (user) {
+      const initial = (user.displayName || user.email || '?')[0].toUpperCase();
+      authArea.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="user-chip">
+            ${user.photoURL
+              ? `<img class="user-avatar" src="${user.photoURL}" alt="프로필" referrerpolicy="no-referrer">`
+              : `<div class="user-avatar-fallback">${initial}</div>`}
+            <span class="user-name">${user.displayName || user.email}</span>
+          </div>
+          <button class="btn-signout" id="btnSignOut">로그아웃</button>
+        </div>`;
+      document.getElementById('btnSignOut').addEventListener('click', () => signOut(auth));
+    } else {
+      authArea.innerHTML = `
+        <button class="btn-google" id="btnSignIn">
+          <svg width="16" height="16" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.2 0 24 0 14.8 0 6.9 5.4 3 13.3l7.9 6.1C12.8 13 17.9 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.5-4.1 7-10.2 7-17.1z"/>
+            <path fill="#FBBC05" d="M10.9 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.6L2.4 13.3A24 24 0 0 0 0 24c0 3.8.9 7.4 2.5 10.6l8.4-6z"/>
+            <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.6-5.9c-2 1.4-4.7 2.2-7.6 2.2-6.1 0-11.2-3.5-13.1-8.6l-8.4 6C6.9 42.6 14.8 48 24 48z"/>
+          </svg>
+          Google로 로그인
+        </button>`;
+      document.getElementById('btnSignIn').addEventListener('click', () =>
+        signInWithPopup(auth, googleProvider).catch(console.error)
+      );
+    }
+  }
+
+  onAuthStateChanged(auth, renderAuth);
+</script>
+</body>
+</html>

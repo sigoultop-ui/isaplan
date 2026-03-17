@@ -45,5 +45,16 @@ service cloud.firestore {
       allow create: if request.auth != null;          // 로그인 사용자 작성
       allow read, update, delete: if isAdmin();       // 관리자만 조회·수정·삭제
     }
+
+    // ── 수강신청 ─────────────────────────────────────────────────
+    match /enrollments/{enrollmentId} {
+      // 본인 신청 생성 & 조회 (중복 확인용)
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null &&
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      // 관리자만 상태 변경
+      allow update, delete: if isAdmin();
+    }
   }
 }

@@ -217,6 +217,10 @@
       <button class="nav-btn" data-tab="users"><span class="icon">👥</span> 사용자 관리</button>
       <button class="nav-btn" data-tab="plans"><span class="icon">📋</span> 계획 관리</button>
       <button class="nav-btn" data-tab="settings"><span class="icon">📢</span> 공지/배너</button>
+      <button class="nav-btn" data-tab="enrollments">
+        <span class="icon">🎓</span> 수강생 관리
+        <span class="nav-badge" id="enrollBadge" style="display:none;"></span>
+      </button>
       <button class="nav-btn" data-tab="feedback">
         <span class="icon">💬</span> 피드백
         <span class="nav-badge" id="fbBadge" style="display:none;"></span>
@@ -261,6 +265,28 @@
           <div class="stat-label">서비스 상태</div>
           <div class="stat-value" id="statMaint">—</div>
           <div class="stat-sub" id="statMaintSub">불러오는 중…</div>
+        </div>
+      </div>
+      <div class="stat-grid" style="margin-bottom:24px;">
+        <div class="stat-card green">
+          <div class="stat-label">총 수강신청</div>
+          <div class="stat-value" id="statEnrollTotal">—</div>
+          <div class="stat-sub">전체 신청자 수</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">검토 중</div>
+          <div class="stat-value" id="statEnrollPending">—</div>
+          <div class="stat-sub">승인 대기 중</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">승인 완료</div>
+          <div class="stat-value" id="statEnrollApproved">—</div>
+          <div class="stat-sub">수강 확정</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">취소/거절</div>
+          <div class="stat-value" id="statEnrollRejected">—</div>
+          <div class="stat-sub">신청 취소</div>
         </div>
       </div>
       <div class="card">
@@ -309,6 +335,31 @@
             <thead><tr><th>계획명</th><th>사용자 이메일</th><th>월 납입</th><th>수익률</th><th>ISA 유형</th><th>저장일</th><th>관리</th></tr></thead>
             <tbody id="plansTbody">
               <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:26px;">불러오는 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 수강생 관리 ── -->
+    <section id="tab-enrollments" class="tab-section">
+      <div class="page-title">수강생 관리</div>
+      <div class="page-sub">수강신청자 목록을 확인하고 승인/거절 처리합니다.</div>
+      <div style="display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <div class="filter-tabs" style="margin-bottom:0;">
+          <button class="filter-tab active" data-efilter="all">전체</button>
+          <button class="filter-tab" data-efilter="pending">검토 중</button>
+          <button class="filter-tab" data-efilter="approved">승인됨</button>
+          <button class="filter-tab" data-efilter="rejected">거절됨</button>
+        </div>
+        <button class="btn btn-ghost" id="btnExportEnrollCSV">📥 CSV 내보내기</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th></th><th>이름</th><th>이메일</th><th>연락처</th><th>투자경험</th><th>신청일</th><th>상태</th><th>관리</th></tr></thead>
+            <tbody id="enrollTbody">
+              <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:26px;">불러오는 중…</td></tr>
             </tbody>
           </table>
         </div>
@@ -425,10 +476,11 @@ document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
     document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
-    if (tab === 'users')    loadUsers();
-    if (tab === 'plans')    loadPlans();
-    if (tab === 'feedback') loadFeedback();
-    if (tab === 'settings') loadSettings();
+    if (tab === 'users')       loadUsers();
+    if (tab === 'plans')       loadPlans();
+    if (tab === 'enrollments') loadEnrollments();
+    if (tab === 'feedback')    loadFeedback();
+    if (tab === 'settings')    loadSettings();
   });
 });
 
@@ -455,6 +507,20 @@ async function loadDashboard() {
     if (cnt > 0) { badge.style.display = 'inline'; badge.textContent = cnt; }
     else           badge.style.display = 'none';
   } catch { document.getElementById('statFeedback').textContent = '—'; }
+
+  // 수강신청 통계
+  try {
+    const snap = await getDocs(collection(db, 'enrollments'));
+    const all = snap.docs.map(d => d.data());
+    document.getElementById('statEnrollTotal').textContent    = all.length;
+    document.getElementById('statEnrollPending').textContent  = all.filter(e => e.status === 'pending').length;
+    document.getElementById('statEnrollApproved').textContent = all.filter(e => e.status === 'approved').length;
+    document.getElementById('statEnrollRejected').textContent = all.filter(e => e.status === 'rejected').length;
+    const pending = all.filter(e => e.status === 'pending').length;
+    const eb = document.getElementById('enrollBadge');
+    if (pending > 0) { eb.style.display = 'inline'; eb.textContent = pending; }
+    else eb.style.display = 'none';
+  } catch { document.getElementById('statEnrollTotal').textContent = '—'; }
 
   // 서비스 상태
   try {
@@ -628,6 +694,88 @@ document.getElementById('btnExportCSV').addEventListener('click', () => {
   a.download = `isaplan_plans_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   toast('CSV 내보내기 완료!', 'success');
+});
+
+// ── 수강생 관리 ────────────────────────────────────────────────────
+let allEnrollments = [];
+let eFilter = 'all';
+
+async function loadEnrollments() {
+  const tbody = document.getElementById('enrollTbody');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:26px;">불러오는 중…</td></tr>';
+  try {
+    const snap = await getDocs(query(collection(db, 'enrollments'), orderBy('createdAt', 'desc')));
+    allEnrollments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderEnrollments(allEnrollments);
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:26px;">${e.message}</td></tr>`;
+  }
+}
+
+function renderEnrollments(list) {
+  const tbody = document.getElementById('enrollTbody');
+  const items = eFilter === 'all' ? list : list.filter(e => e.status === eFilter);
+  if (!items.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:26px;">신청자 없음</td></tr>'; return; }
+  tbody.innerHTML = '';
+  items.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><img src="${e.photoURL||''}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;background:var(--surface2);" onerror="this.style.display='none'"></td>
+      <td style="font-weight:600">${e.displayName||'—'}</td>
+      <td style="color:var(--muted);font-size:.8rem">${e.email||'—'}</td>
+      <td>${e.phone||'—'}</td>
+      <td>${expLabel(e.experience)}</td>
+      <td>${fmtDate(e.createdAt)}</td>
+      <td><span class="badge ${statusClass(e.status)}">${statusLabel(e.status)}</span></td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-xs btn-enroll-detail" data-id="${e.id}">상세</button>
+        ${e.status === 'pending' ? `<button class="btn btn-primary btn-xs btn-approve" data-id="${e.id}">승인</button>` : ''}
+        ${e.status !== 'rejected' ? `<button class="btn btn-danger btn-xs btn-reject" data-id="${e.id}">거절</button>` : ''}
+      </td>`;
+
+    // 상세보기 (motivation 팝업)
+    tr.querySelector('.btn-enroll-detail').addEventListener('click', () => {
+      alert(`[수강 동기]\n${e.motivation || '(없음)'}\n\n[투자 경험] ${expLabel(e.experience)}`);
+    });
+
+    tr.querySelector('.btn-approve')?.addEventListener('click', async () => {
+      if (!confirm(`${e.displayName}님을 승인하시겠습니까?`)) return;
+      await updateDoc(doc(db, 'enrollments', e.id), { status: 'approved' });
+      toast('승인되었습니다.', 'success'); loadEnrollments(); loadDashboard();
+    });
+
+    tr.querySelector('.btn-reject')?.addEventListener('click', async () => {
+      if (!confirm(`${e.displayName}님을 거절하시겠습니까?`)) return;
+      await updateDoc(doc(db, 'enrollments', e.id), { status: 'rejected' });
+      toast('거절 처리되었습니다.'); loadEnrollments(); loadDashboard();
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+function statusLabel(s) { return { pending: '⏳ 검토 중', approved: '✅ 승인', rejected: '❌ 거절' }[s] || s; }
+function statusClass(s) { return { pending: 'unread', approved: 'normal', rejected: 'banned' }[s] || ''; }
+function expLabel(e) { return { none: '없음', beginner: '1년 미만', intermediate: '1~3년', advanced: '3년+' }[e] || e || '—'; }
+
+document.querySelectorAll('.filter-tab[data-efilter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-tab[data-efilter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); eFilter = btn.dataset.efilter; renderEnrollments(allEnrollments);
+  });
+});
+
+document.getElementById('btnExportEnrollCSV').addEventListener('click', () => {
+  if (!allEnrollments.length) { toast('내보낼 데이터가 없습니다.', 'error'); return; }
+  const header = '이름,이메일,연락처,투자경험,신청일,상태,수강동기';
+  const rows = allEnrollments.map(e =>
+    `"${e.displayName}","${e.email}","${e.phone}","${expLabel(e.experience)}","${fmtDate(e.createdAt)}","${statusLabel(e.status)}","${(e.motivation||'').replace(/"/g,"'")}"`
+  );
+  const csv = '\uFEFF' + [header, ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = `isaplan_enrollments_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); toast('CSV 내보내기 완료!', 'success');
 });
 
 // ── 설정 (배너/점검) ───────────────────────────────────────────────
